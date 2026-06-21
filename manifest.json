@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="CandyLearn"/>
+<meta name="theme-color" content="#1a0d3d"/>
+<meta name="description" content="Fun shapes, counting and memory game for kids 3-5"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<title>Candy Learn!</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height:100%;background:#1a0d3d;}
+body{height:100%;overflow:hidden;background:#1a0d3d;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+
+#app{
+  height:100%;height:100dvh;
+  max-width:430px;margin:0 auto;
+  background:#1a0d3d;
+  display:flex;flex-direction:column;
+  overflow:hidden;position:relative;
+}
+
+.screen{
+  display:none;flex-direction:column;
+  height:100%;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:20px 18px;
+  padding-top:max(20px,env(safe-area-inset-top));
+  padding-bottom:max(20px,env(safe-area-inset-bottom));
+}
+.screen.active{display:flex;}
+
+/* ── INSTALL BANNER ── */
+#install-banner{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  max-width:430px;margin:0 auto;
+  background:#2d1a5e;border-top:1.5px solid #3d2575;
+  padding:14px 18px;padding-bottom:max(14px,env(safe-area-inset-bottom));
+  z-index:1000;
+  flex-direction:column;gap:10px;
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.install-row{display:flex;align-items:center;gap:12px;}
+.install-icon{font-size:28px;flex-shrink:0;}
+.install-text{flex:1;}
+.install-title{color:#fff;font-size:14px;font-weight:600;}
+.install-sub{color:#c4aaff;font-size:12px;margin-top:2px;}
+.install-btns{display:flex;gap:8px;}
+.ibtn{flex:1;border:none;border-radius:999px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;}
+.ibtn-yes{background:#f5a623;color:#1a0d3d;}
+.ibtn-no{background:#3d2575;color:#c4aaff;}
+
+/* ── WELCOME ── */
+#s-welcome{align-items:center;justify-content:center;text-align:center;}
+.candy-strip{display:flex;justify-content:center;gap:10px;margin-bottom:22px;}
+.candy{width:40px;height:40px;border-radius:50%;animation:bounce 1.4s ease-in-out infinite;}
+.candy:nth-child(2){animation-delay:.15s;}
+.candy:nth-child(3){animation-delay:.3s;}
+.candy:nth-child(4){animation-delay:.45s;}
+.candy:nth-child(5){animation-delay:.6s;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
+.wt{color:#fff;font-size:34px;font-weight:700;margin-bottom:6px;letter-spacing:-0.5px;}
+.ws{color:#c4aaff;font-size:15px;margin-bottom:28px;}
+.stage-map{display:flex;gap:10px;justify-content:center;margin-bottom:30px;flex-wrap:wrap;}
+.stage-dot{background:#2d1a5e;border-radius:14px;padding:10px 14px;text-align:center;min-width:76px;border:1.5px solid #3d2575;}
+.stage-num{color:#f5a623;font-size:22px;font-weight:700;}
+.stage-lbl{color:#c4aaff;font-size:11px;margin-top:2px;}
+
+/* ── PLAYER INFO ── */
+.form-title{color:#fff;font-size:20px;font-weight:700;text-align:center;margin-bottom:4px;}
+.form-sub{color:#c4aaff;font-size:13px;text-align:center;margin-bottom:18px;}
+.avatar-row{display:flex;gap:10px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}
+.av{width:54px;height:54px;border-radius:50%;cursor:pointer;border:3px solid transparent;font-size:24px;display:flex;align-items:center;justify-content:center;transition:transform .15s;touch-action:manipulation;}
+.av:active{transform:scale(.9);}
+.av.sel{border-color:#f5a623;box-shadow:0 0 0 3px #f5a62333;}
+.field{margin-bottom:14px;}
+.field label{display:block;color:#c4aaff;font-size:12px;margin-bottom:6px;font-weight:500;}
+.field input,.field select{
+  width:100%;background:#2d1a5e;border:1.5px solid #3d2575;
+  border-radius:12px;padding:13px 14px;color:#fff;font-size:16px;outline:none;
+  appearance:none;-webkit-appearance:none;
+}
+.field input::placeholder{color:#6a4a99;}
+.field input:focus,.field select:focus{border-color:#f5a623;}
+
+/* ── STAGE SELECT ── */
+.player-header{
+  display:flex;align-items:center;gap:12px;
+  background:#2d1a5e;border-radius:14px;padding:12px 14px;margin-bottom:16px;
+  border:1.5px solid #3d2575;flex-shrink:0;
+}
+.ph-av{font-size:26px;width:44px;height:44px;background:#3d2575;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ph-name{color:#fff;font-size:15px;font-weight:600;}
+.ph-score{color:#f5a623;font-size:13px;margin-top:1px;}
+.smap{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.scard{
+  background:#2d1a5e;border-radius:16px;padding:16px 12px;
+  cursor:pointer;border:1.5px solid #3d2575;text-align:center;
+  transition:transform .12s;touch-action:manipulation;
+}
+.scard:active{transform:scale(.94);}
+.scard-icon{font-size:34px;margin-bottom:8px;}
+.scard-name{color:#fff;font-size:14px;font-weight:600;}
+.scard-desc{color:#c4aaff;font-size:11px;margin-top:3px;line-height:1.4;}
+.scard-badge{display:inline-block;background:#f5a623;color:#1a0d3d;font-size:10px;font-weight:700;border-radius:999px;padding:3px 10px;margin-top:8px;}
+.total-score-bar{background:#2d1a5e;border-radius:12px;padding:10px 14px;text-align:center;margin-top:12px;border:1.5px solid #3d2575;}
+.tsb-label{color:#c4aaff;font-size:12px;}
+.tsb-val{color:#f5a623;font-size:24px;font-weight:700;}
+
+/* ── GAME ── */
+#s-game{padding-bottom:16px;}
+.top-nav{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-shrink:0;}
+.back-btn{background:#2d1a5e;border:1.5px solid #3d2575;border-radius:999px;padding:7px 16px;color:#c4aaff;font-size:13px;cursor:pointer;touch-action:manipulation;}
+.back-btn:active{background:#3d2575;}
+.sec-title{color:#fff;font-size:16px;font-weight:600;}
+#g-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-shrink:0;}
+.gpill{background:#2d1a5e;border-radius:999px;padding:6px 14px;color:#c4aaff;font-size:12px;font-weight:500;border:1px solid #3d2575;}
+.gpill span{color:#f5a623;font-size:15px;font-weight:700;}
+#g-lives{display:flex;gap:3px;align-items:center;}
+.hrt{font-size:20px;}
+#g-progress{background:#2d1a5e;border-radius:999px;height:8px;margin-bottom:10px;overflow:hidden;flex-shrink:0;}
+#g-bar{height:100%;background:linear-gradient(90deg,#f5a623,#ff6b35);border-radius:999px;transition:width .4s;}
+#g-target{background:#2d1a5e;border-radius:14px;padding:11px 14px;text-align:center;margin-bottom:12px;border:1px solid #3d2575;flex-shrink:0;}
+#g-tlabel{color:#c4aaff;font-size:12px;margin-bottom:3px;}
+#g-tname{color:#fff;font-size:18px;font-weight:600;}
+#g-board{display:grid;gap:8px;margin-bottom:8px;}
+.cell{display:flex;align-items:center;justify-content:center;background:#2d1a5e;border-radius:13px;cursor:pointer;border:2px solid transparent;aspect-ratio:1;touch-action:manipulation;}
+.cell:active{transform:scale(.88);}
+.cell.gone{opacity:0;pointer-events:none;transition:opacity .2s;}
+@keyframes cflash{0%{background:#2d1a5e}50%{background:#5ade7a;border-color:#2ab54e}100%{background:#2d1a5e}}
+@keyframes wflash{0%{background:#2d1a5e}40%{background:#e2504a;border-color:#a32d2d}100%{background:#2d1a5e;border-color:transparent}}
+.cell.cf{animation:cflash .35s ease;}
+.cell.wf{animation:wflash .35s ease;}
+#g-feedback{text-align:center;min-height:26px;color:#fff;font-size:15px;font-weight:600;margin-bottom:6px;flex-shrink:0;}
+
+/* COUNT */
+#g-count-area{display:none;flex-direction:column;align-items:center;}
+#g-count-display{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:16px;}
+#g-count-opts{display:flex;gap:12px;justify-content:center;}
+.copt{background:#2d1a5e;color:#fff;border:2px solid #3d2575;border-radius:14px;padding:14px 26px;font-size:24px;font-weight:700;cursor:pointer;touch-action:manipulation;}
+.copt:active{transform:scale(.9);}
+
+/* MEMORY */
+#g-memory{display:none;gap:8px;}
+.mcard{background:#2d1a5e;border-radius:13px;cursor:pointer;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border:2px solid #3d2575;touch-action:manipulation;}
+.mcard:active{transform:scale(.9);}
+.mcard.flipped{border-color:#f5a623;}
+.mcard.matched{border-color:#5ade7a;background:#0f3320;}
+
+/* DRAG */
+#g-drag-wrap{display:none;flex-direction:column;gap:14px;}
+#g-drag-area{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.draggable{background:#2d1a5e;border-radius:13px;padding:10px;border:2px solid #3d2575;display:flex;align-items:center;justify-content:center;touch-action:none;}
+.draggable.dragging{opacity:.4;transform:scale(1.1);border-color:#f5a623;}
+#g-drop-zone{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.dropbox{background:#2d1a5e;border:2.5px dashed #3d2575;border-radius:16px;min-width:80px;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:border-color .2s,background .2s;padding:6px;}
+.dropbox.over{border-color:#f5a623;background:#3d2060;}
+.dropbox.correct{border-color:#5ade7a;background:#0f3320;border-style:solid;}
+.dropbox.wrong{border-color:#e2504a;background:#3d0f0f;}
+.dropbox-label{color:#c4aaff;font-size:12px;margin-top:4px;font-weight:600;}
+
+/* WIN */
+#s-win{align-items:center;justify-content:center;text-align:center;}
+.win-emoji{font-size:64px;margin-bottom:14px;animation:bounce 1s infinite;}
+.win-title{color:#fff;font-size:26px;font-weight:700;margin-bottom:6px;}
+.win-sub{color:#c4aaff;font-size:14px;margin-bottom:14px;}
+.win-score{color:#f5a623;font-size:36px;font-weight:700;margin-bottom:20px;}
+.stars-row{font-size:36px;margin-bottom:16px;}
+
+/* BUTTONS */
+.btn{display:block;width:100%;background:#f5a623;color:#1a0d3d;border:none;border-radius:999px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-top:10px;}
+.btn:active{transform:scale(.96);}
+.btn-sec{background:#2d1a5e;color:#e8d5ff;border:1.5px solid #3d2575;}
+
+@keyframes pop{0%{transform:scale(.4);opacity:0}80%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.pop{animation:pop .28s cubic-bezier(.36,1.5,.5,1);}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="install-row">
+    <div class="install-icon">🍭</div>
+    <div class="install-text">
+      <div class="install-title">Add Candy Learn to your phone!</div>
+      <div class="install-sub">Play offline, anytime — like a real app</div>
+    </div>
+  </div>
+  <div class="install-btns">
+    <button class="ibtn ibtn-yes" id="install-yes">Install app</button>
+    <button class="ibtn ibtn-no" id="install-no">Not now</button>
+  </div>
+</div>
+
+<!-- WELCOME -->
+<div id="s-welcome" class="screen active">
+  <div class="candy-strip">
+    <div class="candy" style="background:#E24B4A;"></div>
+    <div class="candy" style="background:#378ADD;"></div>
+    <div class="candy" style="background:#EF9F27;"></div>
+    <div class="candy" style="background:#7F77DD;"></div>
+    <div class="candy" style="background:#D4537E;"></div>
+  </div>
+  <div class="wt">Candy Learn!</div>
+  <div class="ws">A fun learning adventure ✨</div>
+  <div class="stage-map">
+    <div class="stage-dot"><div class="stage-num">1</div><div class="stage-lbl">Shapes</div></div>
+    <div class="stage-dot"><div class="stage-num">2</div><div class="stage-lbl">Count</div></div>
+    <div class="stage-dot"><div class="stage-num">3</div><div class="stage-lbl">Memory</div></div>
+    <div class="stage-dot"><div class="stage-num">4</div><div class="stage-lbl">Sort</div></div>
+  </div>
+  <button class="btn" onclick="goTo('s-info')">Let's play! 🍭</button>
+  <button class="btn btn-sec" id="manual-install-btn" style="display:none;margin-top:10px;" onclick="triggerInstall()">📲 Install on this device</button>
+</div>
+
+<!-- PLAYER INFO -->
+<div id="s-info" class="screen">
+  <div class="top-nav">
+    <button class="back-btn" onclick="goTo('s-welcome')">← Back</button>
+    <span class="sec-title">Who's playing?</span>
+  </div>
+  <div class="form-title">Your profile</div>
+  <div class="form-sub">Tell us about yourself!</div>
+  <div class="avatar-row">
+    <div class="av sel" id="av0" onclick="selAv(0)" style="background:#E24B4A;">🐱</div>
+    <div class="av" id="av1" onclick="selAv(1)" style="background:#378ADD;">🐰</div>
+    <div class="av" id="av2" onclick="selAv(2)" style="background:#639922;">🦕</div>
+    <div class="av" id="av3" onclick="selAv(3)" style="background:#7F77DD;">🦄</div>
+    <div class="av" id="av4" onclick="selAv(4)" style="background:#EF9F27;">🐉</div>
+  </div>
+  <div class="field"><label>Your name</label><input id="pname" type="text" placeholder="e.g. Amara" maxlength="20" autocomplete="off"/></div>
+  <div class="field">
+    <label>How old are you?</label>
+    <select id="page"><option value="">Pick your age</option><option>3</option><option>4</option><option>5</option></select>
+  </div>
+  <div class="field">
+    <label>Favourite colour</label>
+    <select id="pfav"><option value="">Pick a colour</option><option>Red</option><option>Blue</option><option>Green</option><option>Yellow</option><option>Purple</option><option>Pink</option></select>
+  </div>
+  <button class="btn" onclick="startGame()" style="margin-top:8px;">Start adventure! 🚀</button>
+</div>
+
+<!-- STAGE SELECT -->
+<div id="s-stages" class="screen">
+  <div class="top-nav">
+    <button class="back-btn" onclick="goTo('s-welcome')">← Home</button>
+    <span class="sec-title">Choose a stage</span>
+  </div>
+  <div class="player-header">
+    <div class="ph-av" id="ph-av">🐱</div>
+    <div><div class="ph-name" id="ph-name">Player</div><div class="ph-score">Total score: <span id="ph-score">0</span></div></div>
+  </div>
+  <div class="smap">
+    <div class="scard" onclick="launchStage(1)"><div class="scard-icon">🔵</div><div class="scard-name">Shapes hunt</div><div class="scard-desc">Tap all matching shapes!</div><div class="scard-badge">Stage 1</div></div>
+    <div class="scard" onclick="launchStage(2)"><div class="scard-icon">🔢</div><div class="scard-name">Count &amp; pick</div><div class="scard-desc">How many shapes?</div><div class="scard-badge">Stage 2</div></div>
+    <div class="scard" onclick="launchStage(3)"><div class="scard-icon">🃏</div><div class="scard-name">Memory match</div><div class="scard-desc">Find the pairs!</div><div class="scard-badge">Stage 3</div></div>
+    <div class="scard" onclick="launchStage(4)"><div class="scard-icon">🎯</div><div class="scard-name">Shape sort</div><div class="scard-desc">Drop each shape to its box!</div><div class="scard-badge">Stage 4</div></div>
+  </div>
+  <div class="total-score-bar"><div class="tsb-label">Total candy score 🍬</div><div class="tsb-val" id="ts-val">0</div></div>
+</div>
+
+<!-- GAME -->
+<div id="s-game" class="screen">
+  <div class="top-nav">
+    <button class="back-btn" onclick="goTo('s-stages')">← Stages</button>
+    <span class="sec-title" id="g-stage-title">Stage 1</span>
+  </div>
+  <div id="g-topbar">
+    <div class="gpill">Score <span id="g-score">0</span></div>
+    <div id="g-lives"><span class="hrt" id="gh1">❤️</span><span class="hrt" id="gh2">❤️</span><span class="hrt" id="gh3">❤️</span></div>
+    <div class="gpill">Round <span id="g-round">1</span>/5</div>
+  </div>
+  <div id="g-progress"><div id="g-bar" style="width:0%"></div></div>
+  <div id="g-target"><div id="g-tlabel">Find all the...</div><div id="g-tname"></div></div>
+  <div id="g-board"></div>
+  <div id="g-count-area"><div id="g-count-display"></div><div id="g-count-opts"></div></div>
+  <div id="g-memory"></div>
+  <div id="g-drag-wrap"><div id="g-drag-area"></div><div id="g-drop-zone"></div></div>
+  <div id="g-feedback"></div>
+</div>
+
+<!-- WIN -->
+<div id="s-win" class="screen">
+  <div class="win-emoji" id="w-emoji">🎉</div>
+  <div class="stars-row" id="w-stars">⭐⭐⭐</div>
+  <div class="win-title" id="w-title">Amazing!</div>
+  <div class="win-sub" id="w-sub">Stage complete!</div>
+  <div class="win-score" id="w-pts">+50 pts</div>
+  <button class="btn" onclick="goTo('s-stages')">More stages 🎪</button>
+  <button class="btn btn-sec" onclick="replayStage()">Play again 🔄</button>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ── PWA INSTALL ──
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner').style.display='flex';
+  document.getElementById('manual-install-btn').style.display='block';
+});
+document.getElementById('install-yes').addEventListener('click',triggerInstall);
+document.getElementById('install-no').addEventListener('click',()=>{
+  document.getElementById('install-banner').style.display='none';
+});
+function triggerInstall(){
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{
+    deferredPrompt=null;
+    document.getElementById('install-banner').style.display='none';
+    document.getElementById('manual-install-btn').style.display='none';
+  });
+}
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('install-banner').style.display='none';
+});
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));
+}
+
+// ── GAME ──
+const COLORS=[
+  {name:'red',    fill:'#E24B4A',stroke:'#A32D2D'},
+  {name:'blue',   fill:'#378ADD',stroke:'#185FA5'},
+  {name:'green',  fill:'#4CAF50',stroke:'#2E7D32'},
+  {name:'yellow', fill:'#EF9F27',stroke:'#BA7517'},
+  {name:'purple', fill:'#7F77DD',stroke:'#534AB7'},
+  {name:'pink',   fill:'#D4537E',stroke:'#993556'},
+];
+const SHAPES=['circle','square','triangle','star','diamond'];
+const SHAPE_EMOJI={circle:'⬤',square:'■',triangle:'▲',star:'★',diamond:'◆'};
+const EMOJIS=['🐱','🐰','🦕','🦄','🐉'];
+const CHEERS=['Sweet! 🍬','Amazing! ⭐','Yummy! 🍭','Brilliant! 💛','Awesome! 🎉'];
+const OOPS=['Oops! Try again!','Not that one!','Keep looking!','Almost! Try again!'];
+
+let player={name:'Player',avatar:0,score:0};
+let selAvIdx=0,currentStage=1,lastStage=1;
+let lives=3,gScore=0,round=0,locked=false;
+let memCards=[],memFlipped=[],memMatched=0;
+let dragEl=null,touchClone=null;
+
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});
+  const el=document.getElementById(id);el.style.display='flex';
+  requestAnimationFrame(()=>el.classList.add('active'));
+  if(id==='s-stages'){
+    document.getElementById('ts-val').textContent=player.score;
+    document.getElementById('ph-score').textContent=player.score;
+  }
+}
+function selAv(i){selAvIdx=i;document.querySelectorAll('.av').forEach((a,idx)=>a.classList.toggle('sel',idx===i));}
+function startGame(){
+  player.name=document.getElementById('pname').value.trim()||'Player';
+  player.avatar=selAvIdx;
+  document.getElementById('ph-av').textContent=EMOJIS[player.avatar];
+  document.getElementById('ph-name').textContent=player.name;
+  goTo('s-stages');
+}
+function launchStage(n){
+  currentStage=n;lastStage=n;lives=3;gScore=0;round=0;locked=false;
+  updateHearts();
+  document.getElementById('g-score').textContent=0;
+  document.getElementById('g-round').textContent=1;
+  document.getElementById('g-stage-title').textContent='Stage '+n+' — '+['Shapes hunt','Count & pick','Memory match','Shape sort'][n-1];
+  ['g-board','g-count-area','g-memory','g-drag-wrap'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('g-board').style.display='grid';
+  document.getElementById('g-target').style.display='block';
+  goTo('s-game');buildRound();
+}
+function replayStage(){launchStage(lastStage);}
+function buildRound(){
+  locked=false;document.getElementById('g-feedback').textContent='';
+  round++;document.getElementById('g-round').textContent=round;
+  document.getElementById('g-bar').style.width='0%';
+  if(currentStage===1)buildShapeRound();
+  else if(currentStage===2)buildCountRound();
+  else if(currentStage===3)buildMemoryRound();
+  else buildDragRound();
+}
+
+function svgShape(shape,color,size,sw){
+  sw=sw||2.5;const f=color.fill,s=color.stroke,cx=size/2,cy=size/2,r=size*.38;
+  let inner='';
+  if(shape==='circle')inner=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${f}" stroke="${s}" stroke-width="${sw}"/>`;
+  else if(shape==='square'){const m=size*.13;inner=`<rect x="${m}" y="${m}" width="${size-2*m}" height="${size-2*m}" rx="5" fill="${f}" stroke="${s}" stroke-width="${sw}"/>`;}
+  else if(shape==='triangle')inner=`<polygon points="${cx},${size*.1} ${size*.9},${size*.88} ${size*.1},${size*.88}" fill="${f}" stroke="${s}" stroke-width="${sw}"/>`;
+  else if(shape==='star')inner=`<polygon points="${starPts(cx,cy,5,r,r*.42)}" fill="${f}" stroke="${s}" stroke-width="${sw}"/>`;
+  else if(shape==='diamond')inner=`<polygon points="${cx},${size*.08} ${size*.9},${cy} ${cx},${size*.92} ${size*.1},${cy}" fill="${f}" stroke="${s}" stroke-width="${sw}"/>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">${inner}</svg>`;
+}
+function starPts(cx,cy,n,ro,ri){
+  return Array.from({length:2*n},(_,i)=>{const a=(Math.PI/n)*i-Math.PI/2,r=i%2===0?ro:ri;return (cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1);}).join(' ');
+}
+function shuffle(a){return a.slice().sort(()=>Math.random()-.5);}
+
+// Stage 1
+function buildShapeRound(){
+  show('g-board','grid');
+  const board=document.getElementById('g-board');
+  board.style.gridTemplateColumns='repeat(5,1fr)';
+  const tc=COLORS[Math.floor(Math.random()*COLORS.length)];
+  const ts=SHAPES[Math.floor(Math.random()*SHAPES.length)];
+  const tCount=3+Math.floor(Math.random()*3);let remaining=tCount;
+  document.getElementById('g-tlabel').textContent='Tap all the...';
+  document.getElementById('g-tname').textContent=tc.name+' '+ts+'s';
+  const usedKey=tc.name+ts;
+  const cells=[...Array(tCount).fill(null).map(()=>({color:tc,shape:ts,isTarget:true}))];
+  for(let i=cells.length;i<20;i++){let c,s,k,t=0;do{c=COLORS[Math.floor(Math.random()*COLORS.length)];s=SHAPES[Math.floor(Math.random()*SHAPES.length)];k=c.name+s;t++;}while(k===usedKey&&t<15);cells.push({color:c,shape:s,isTarget:false});}
+  board.innerHTML='';
+  const sz=Math.min(Math.floor((Math.min(window.innerWidth,430)-36-8*4)/5),66);
+  shuffle(cells).forEach((item,i)=>{
+    const cell=document.createElement('div');cell.className='cell pop';cell.style.animationDelay=(i*.02)+'s';
+    cell.innerHTML=svgShape(item.shape,item.color,sz);
+    cell.addEventListener('click',()=>{
+      if(locked||cell.classList.contains('gone'))return;
+      if(item.isTarget){
+        gScore+=10;updateScore();cell.classList.add('cf');
+        setTimeout(()=>cell.classList.add('gone'),280);
+        remaining--;setBar(Math.round((tCount-remaining)/tCount*100));
+        setFeedback(CHEERS[Math.floor(Math.random()*CHEERS.length)]);
+        if(remaining<=0){locked=true;setTimeout(nextOrWin,650);}
+      }else{cell.classList.add('wf');setTimeout(()=>cell.classList.remove('wf'),380);loseLife();setFeedback(OOPS[Math.floor(Math.random()*OOPS.length)]);}
+    });
+    board.appendChild(cell);
+  });
+}
+
+// Stage 2
+function buildCountRound(){
+  hide('g-board');show('g-count-area','flex');
+  const shape=SHAPES[Math.floor(Math.random()*SHAPES.length)];
+  const color=COLORS[Math.floor(Math.random()*COLORS.length)];
+  const correct=2+Math.floor(Math.random()*5);
+  document.getElementById('g-tlabel').textContent='Count the shapes!';
+  document.getElementById('g-tname').textContent='How many '+color.name+' '+shape+'s?';
+  const display=document.getElementById('g-count-display');display.innerHTML='';
+  const sz=Math.max(40,Math.min(52,Math.floor((Math.min(window.innerWidth,430)-36)/correct-10)));
+  for(let i=0;i<correct;i++){const d=document.createElement('div');d.className='pop';d.style.animationDelay=(i*.06)+'s';d.innerHTML=svgShape(shape,color,sz);display.appendChild(d);}
+  const opts=shuffle([correct,correct===1?2:correct-1,Math.max(1,correct>=5?correct+1:correct+2)]);
+  const optsEl=document.getElementById('g-count-opts');optsEl.innerHTML='';
+  opts.forEach(n=>{
+    const b=document.createElement('div');b.className='copt';b.textContent=n;
+    b.addEventListener('click',()=>{
+      if(locked)return;
+      if(n===correct){gScore+=15;updateScore();b.style.borderColor='#5ade7a';b.style.background='#0f3320';setBar(100);setFeedback('Correct! You counted '+correct+'! 🎉');locked=true;setTimeout(()=>{hide('g-count-area');nextOrWin();},900);}
+      else{b.style.borderColor='#e2504a';b.style.background='#3d0f0f';setTimeout(()=>{b.style.borderColor='#3d2575';b.style.background='#2d1a5e';},600);loseLife();setFeedback('Try again! Count carefully! 👀');}
+    });
+    optsEl.appendChild(b);
+  });
+}
+
+// Stage 3
+function buildMemoryRound(){
+  hide('g-board');show('g-memory','grid');
+  const mem=document.getElementById('g-memory');
+  mem.style.gridTemplateColumns='repeat(4,1fr)';mem.style.gap='8px';
+  document.getElementById('g-tlabel').textContent='Find the matching pairs!';
+  document.getElementById('g-tname').textContent='Flip and remember 🧠';
+  const pairs=shuffle(SHAPES).slice(0,4).flatMap(s=>[s,s]);
+  memCards=[];memFlipped=[];memMatched=0;mem.innerHTML='';
+  shuffle(pairs).forEach((shape,i)=>{
+    const card=document.createElement('div');card.className='mcard';card.dataset.shape=shape;
+    card.innerHTML='<span style="font-size:28px;color:#3d2575;">?</span>';
+    card.addEventListener('click',()=>flipMemCard(card,shape));
+    mem.appendChild(card);memCards.push(card);
+  });
+}
+function flipMemCard(card,shape){
+  if(locked||card.classList.contains('flipped')||card.classList.contains('matched'))return;
+  const c=COLORS[Math.floor(Math.random()*COLORS.length)];
+  const sz=Math.max(44,Math.min(60,Math.floor((Math.min(window.innerWidth,430)-36-8*3)/4)-8));
+  card.innerHTML=svgShape(shape,c,sz);card.classList.add('flipped');memFlipped.push({card,shape});
+  if(memFlipped.length===2){
+    locked=true;
+    setTimeout(()=>{
+      const[a,b]=memFlipped;
+      if(a.shape===b.shape){a.card.classList.add('matched');b.card.classList.add('matched');gScore+=20;updateScore();memMatched++;setBar(Math.round(memMatched/4*100));setFeedback('Perfect match! 🎊');if(memMatched===4){setTimeout(()=>{hide('g-memory');nextOrWin();},650);}else locked=false;}
+      else{a.card.innerHTML='<span style="font-size:28px;color:#3d2575;">?</span>';b.card.innerHTML='<span style="font-size:28px;color:#3d2575;">?</span>';a.card.classList.remove('flipped');b.card.classList.remove('flipped');loseLife();setFeedback('Not a match — keep trying! 🔍');locked=false;}
+      memFlipped=[];
+    },700);
+  }
+}
+
+// Stage 4
+function buildDragRound(){
+  hide('g-board');show('g-drag-wrap','flex');
+  document.getElementById('g-tlabel').textContent='Sort the shapes!';
+  document.getElementById('g-tname').textContent='Drop each shape to its box 🎯';
+  const chosen=shuffle(SHAPES).slice(0,3);
+  const items=shuffle(chosen.flatMap(s=>[s,s]));
+  const dragArea=document.getElementById('g-drag-area');
+  const dropZone=document.getElementById('g-drop-zone');
+  dragArea.innerHTML='';dropZone.innerHTML='';
+  let solved=0;const sz=Math.max(44,Math.min(60,Math.floor((Math.min(window.innerWidth,430)-36-10*5)/6)));
+  items.forEach(shape=>{
+    const d=document.createElement('div');d.className='draggable';d.dataset.shape=shape;
+    const c=COLORS[Math.floor(Math.random()*COLORS.length)];d.innerHTML=svgShape(shape,c,sz);
+    setupDrag(d,()=>{solved++;setBar(Math.round(solved/chosen.length*100));if(solved>=chosen.length){locked=true;setTimeout(()=>{hide('g-drag-wrap');nextOrWin();},700);}});
+    dragArea.appendChild(d);
+  });
+  chosen.forEach(shape=>{
+    const box=document.createElement('div');box.className='dropbox';box.dataset.target=shape;
+    box.innerHTML=`<span style="font-size:28px;">${SHAPE_EMOJI[shape]||'?'}</span><div class="dropbox-label">${shape}</div>`;
+    box.addEventListener('dragover',e=>{e.preventDefault();box.classList.add('over');});
+    box.addEventListener('dragleave',()=>box.classList.remove('over'));
+    box.addEventListener('drop',e=>{e.preventDefault();box.classList.remove('over');if(dragEl)handleDrop(box,dragEl);});
+    dropZone.appendChild(box);
+  });
+}
+function setupDrag(el,onSuccess){
+  el._onSuccess=onSuccess;
+  el.draggable=true;
+  el.addEventListener('dragstart',e=>{dragEl=el;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+  el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragEl=null;});
+  el.addEventListener('touchstart',e=>{
+    dragEl=el;el.classList.add('dragging');
+    const t=e.touches[0];
+    touchClone=el.cloneNode(true);
+    Object.assign(touchClone.style,{position:'fixed',pointerEvents:'none',opacity:'.85',zIndex:'9999',left:(t.clientX-35)+'px',top:(t.clientY-35)+'px'});
+    document.body.appendChild(touchClone);
+  },{passive:true});
+  el.addEventListener('touchmove',e=>{
+    e.preventDefault();const t=e.touches[0];
+    if(touchClone){touchClone.style.left=(t.clientX-35)+'px';touchClone.style.top=(t.clientY-35)+'px';}
+    document.querySelectorAll('.dropbox').forEach(b=>{
+      const r=b.getBoundingClientRect();
+      b.classList.toggle('over',t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom);
+    });
+  },{passive:false});
+  el.addEventListener('touchend',e=>{
+    if(touchClone){document.body.removeChild(touchClone);touchClone=null;}
+    el.classList.remove('dragging');
+    const t=e.changedTouches[0];
+    document.querySelectorAll('.dropbox').forEach(b=>{
+      b.classList.remove('over');
+      const r=b.getBoundingClientRect();
+      if(t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom)handleDrop(b,el);
+    });
+    dragEl=null;
+  });
+}
+function handleDrop(box,item){
+  if(box.classList.contains('correct'))return;
+  if(item.dataset.shape===box.dataset.target){
+    box.classList.add('correct');
+    const clone=item.cloneNode(true);clone.draggable=false;clone.style.pointerEvents='none';
+    box.innerHTML='';box.appendChild(clone);
+    const lbl=document.createElement('div');lbl.className='dropbox-label';lbl.textContent=box.dataset.target;box.appendChild(lbl);
+    item.style.opacity='0';item.style.pointerEvents='none';
+    gScore+=15;updateScore();setFeedback('Perfect! '+SHAPE_EMOJI[box.dataset.target]+' in the right box!');
+    if(item._onSuccess)item._onSuccess();
+  }else{
+    box.classList.add('wrong');setTimeout(()=>box.classList.remove('wrong'),500);
+    loseLife();setFeedback('Oops! Try the right box! 👀');
+  }
+}
+
+function setBar(pct){document.getElementById('g-bar').style.width=pct+'%';}
+function setFeedback(msg){document.getElementById('g-feedback').textContent=msg;}
+function updateScore(){document.getElementById('g-score').textContent=gScore;}
+function loseLife(){lives=Math.max(0,lives-1);updateHearts();if(lives<=0){locked=true;setTimeout(showWin,500);}}
+function updateHearts(){['gh1','gh2','gh3'].forEach((id,i)=>document.getElementById(id).textContent=i<lives?'❤️':'🖤');}
+function nextOrWin(){if(round>=5||lives<=0)showWin();else buildRound();}
+function showWin(){
+  const won=lives>0;
+  const max=5*(currentStage===1?10:currentStage===2?15:currentStage===3?20:15);
+  const pct=gScore/max;
+  document.getElementById('w-emoji').textContent=won?'🏆':'💔';
+  document.getElementById('w-stars').textContent=pct>=.85?'⭐⭐⭐':pct>=.5?'⭐⭐':'⭐';
+  document.getElementById('w-title').textContent=won?'You did it, '+player.name+'!':'Keep trying!';
+  document.getElementById('w-sub').textContent=won?'Stage '+currentStage+' complete! 🎉':'Ran out of hearts!';
+  document.getElementById('w-pts').textContent='+'+gScore+' pts';
+  player.score+=gScore;
+  document.getElementById('ph-score').textContent=player.score;
+  goTo('s-win');
+}
+function show(id,disp){document.getElementById(id).style.display=disp||'block';}
+function hide(id){document.getElementById(id).style.display='none';}
+
+// Init
+document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+document.getElementById('s-welcome').style.display='flex';
+document.getElementById('s-welcome').classList.add('active');
+</script>
+</body>
+</html>
